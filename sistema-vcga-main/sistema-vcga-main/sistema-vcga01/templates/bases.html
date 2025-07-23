@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Bases de Dados - VCGA{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-0">
+            <i class="fas fa-database me-2"></i>Gerenciamento de Bases
+        </h2>
+        <p class="text-muted">Gerencie suas bases de dados de matrículas e HDs</p>
+    </div>
+</div>
+
+<!-- Upload de Nova Base -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload me-2"></i>Upload de Nova Base
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="upload-form" enctype="multipart/form-data">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="base_number" class="form-label">Número da Base</label>
+                            <select class="form-select" id="base_number" name="base_number" required>
+                                <option value="">Selecione...</option>
+                                {% for i in range(1, 11) %}
+                                <option value="{{ i }}">Base {{ i }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="file" class="form-label">Arquivo Excel (.xls ou .xlsx)</label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".xls,.xlsx" required>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-upload me-2"></i>Upload
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status das Bases -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Status das Bases
+                </h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshBases()">
+                    <i class="fas fa-sync me-1"></i>Atualizar
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Base</th>
+                                <th>Status</th>
+                                <th>Arquivo</th>
+                                <th>Registros</th>
+                                <th>Tamanho</th>
+                                <th>Modificado</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bases-table-body">
+                            {% for base_id, info in bases_status.items() %}
+                            <tr>
+                                <td><strong>{{ base_id.replace('base', 'Base ') }}</strong></td>
+                                <td>
+                                    {% if info.status == 'completo' %}
+                                        <span class="badge bg-success">Completo</span>
+                                    {% elif info.status == 'vazio' %}
+                                        <span class="badge bg-warning">Vazio</span>
+                                    {% elif info.status == 'erro' %}
+                                        <span class="badge bg-danger">Erro</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inexistente</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ info.get('arquivo', '-') }}</td>
+                                <td>{{ info.get('linhas', '-') }}</td>
+                                <td>
+                                    {% if info.get('tamanho') %}
+                                        {{ "%.1f KB"|format(info.tamanho / 1024) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ info.get('modificado', '-') }}</td>
+                                <td>
+                                    {% if info.status == 'completo' %}
+                                        <button class="btn btn-danger btn-sm" onclick="deleteBase('{{ base_id.replace('base', '') }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Progresso -->
+<div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Processando...</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p id="progress-message">Convertendo planilha...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('#upload-form').submit(function(e) {
+        e.preventDefault();
+        uploadFile();
+    });
+});
+
+function uploadFile() {
+    const formData = new FormData();
+    const fileInput = document.getElementById('file');
+    const baseNumber = document.getElementById('base_number').value;
+    
+    if (!fileInput.files[0] || !baseNumber) {
+        showAlert('Por favor, selecione um arquivo e o número da base', 'warning');
+        return;
+    }
+    
+    formData.append('file', fileInput.files[0]);
+    formData.append('base_number', baseNumber);
+    
+    // Mostrar modal de progresso
+    $('#progressModal').modal('show');
+    
+    $.ajax({
+        url: '/converter/convert',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(data) {
+            $('#progressModal').modal('hide');
+            
+            if (data.success) {
+                showAlert(data.message + ` (${data.records} registros)`, 'success');
+                refreshBases();
+                document.getElementById('upload-form').reset();
+            } else {
+                showAlert('Erro: ' + data.message, 'danger');
+            }
+        },
+        error: function() {
+            $('#progressModal').modal('hide');
+            showAlert('Erro ao fazer upload do arquivo', 'danger');
+        }
+    });
+}
+
+function refreshBases() {
+    $.get('/bases/status', function(data) {
+        updateBasesTable(data);
+    });
+}
+
+function updateBasesTable(basesStatus) {
+    const tbody = $('#bases-table-body');
+    tbody.empty();
+    
+    for (const [baseId, info] of Object.entries(basesStatus)) {
+        const baseName = baseId.replace('base', 'Base ');
+        const baseNumber = baseId.replace('base', '');
+        
+        let statusBadge = '';
+        if (info.status === 'completo') {
+            statusBadge = '<span class="badge bg-success">Completo</span>';
+        } else if (info.status === 'vazio') {
+            statusBadge = '<span class="badge bg-warning">Vazio</span>';
+        } else if (info.status === 'erro') {
+            statusBadge = '<span class="badge bg-danger">Erro</span>';
+        } else {
+            statusBadge = '<span class="badge bg-secondary">Inexistente</span>';
+        }
+        
+        const tamanho = info.tamanho ? (info.tamanho / 1024).toFixed(1) + ' KB' : '-';
+        const actions = info.status === 'completo' ? 
+            `<button class="btn btn-danger btn-sm" onclick="deleteBase('${baseNumber}')">
+                <i class="fas fa-trash"></i>
+            </button>` : 
+            '<span class="text-muted">-</span>';
+        
+        const row = `
+            <tr>
+                <td><strong>${baseName}</strong></td>
+                <td>${statusBadge}</td>
+                <td>${info.arquivo || '-'}</td>
+                <td>${info.linhas || '-'}</td>
+                <td>${tamanho}</td>
+                <td>${info.modificado || '-'}</td>
+                <td>${actions}</td>
+            </tr>
+        `;
+        
+        tbody.append(row);
+    }
+}
+
+function deleteBase(baseNumber) {
+    if (confirm(`Tem certeza que deseja deletar a Base ${baseNumber}?`)) {
+        $.post(`/bases/delete/${baseNumber}`, function(data) {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                refreshBases();
+            } else {
+                showAlert('Erro: ' + data.message, 'danger');
+            }
+        });
+    }
+}
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $('.main-content').prepend(alertHtml);
+    
+    setTimeout(function() {
+        $('.alert').first().alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - VCGA{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-0">
+                <i class="fas fa-chart-bar me-2"></i>Relatórios
+            </h2>
+            <p class="text-muted">Estatísticas de uso do sistema</p>
+        </div>
+        <div>
+            <button class="btn btn-danger" onclick="downloadPDF()">
+                <i class="fas fa-file-pdf me-2"></i>Baixar PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Erro ao gerar relatório: {{ error }}
+</div>
+{% else %}
+<div class="row g-4">
+    <!-- Resumo Geral -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Resumo Geral
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <h4 class="text-success">{{ report.hd_encontrado + report.matriculas_encontradas }}</h4>
+                            <small class="text-muted">Consultas Bem-sucedidas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                            <h4 class="text-warning">{{ report.hd_nao_encontrado + report.matriculas_nao_encontradas }}</h4>
+                            <small class="text-muted">Não Encontrados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-info bg-opacity-10 rounded">
+                            <i class="fas fa-link fa-2x text-info mb-2"></i>
+                            <h4 class="text-info">{{ report.respostas_link }}</h4>
+                            <small class="text-muted">Links Enviados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                            <i class="fas fa-comments fa-2x text-primary mb-2"></i>
+                            <h4 class="text-primary">{{ report.mensagens_respondidas }}</h4>
+                            <small class="text-muted">Total de Respostas</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detalhes por Categoria -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Detalhes por Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td><i class="fas fa-tint text-primary me-2"></i>HDs Encontrados</td>
+                                <td class="text-end"><strong>{{ report.hd_encontrado }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-id-card text-success me-2"></i>Matrículas Encontradas</td>
+                                <td class="text-end"><strong>{{ report.matriculas_encontradas }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-times text-danger me-2"></i>HDs Não Encontrados</td>
+                                <td class="text-end"><strong>{{ report.hd_nao_encontrado }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-times text-warning me-2"></i>Matrículas Não Encontradas</td>
+                                <td class="text-end"><strong>{{ report.matriculas_nao_encontradas }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-question text-secondary me-2"></i>Mensagens Inválidas</td>
+                                <td class="text-end"><strong>{{ report.mensagens_invalidas }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-link text-info me-2"></i>Respostas de Link</td>
+                                <td class="text-end"><strong>{{ report.respostas_link }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-doughnut me-2"></i>Distribuição
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="reportChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informações Adicionais -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informações Adicionais
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Última Atualização:</strong> {{ report.ultima_data }}</p>
+                        <p><strong>Total de Interações:</strong> {{ report.total_geral }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Taxa de Sucesso:</strong> 
+                            {% if report.total_geral > 0 %}
+                                {{ "%.1f"|format((report.hd_encontrado + report.matriculas_encontradas) / report.total_geral * 100) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </p>
+                        <p><strong>Mensagens Respondidas:</strong> {{ report.mensagens_respondidas }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Gráfico de distribuição
+const ctx = document.getElementById('reportChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: [
+            'HDs Encontrados',
+            'Matrículas Encontradas', 
+            'HDs Não Encontrados',
+            'Matrículas Não Encontradas',
+            'Mensagens Inválidas',
+            'Respostas de Link'
+        ],
+        datasets: [{
+            data: [
+                {{ report.hd_encontrado }},
+                {{ report.matriculas_encontradas }},
+                {{ report.hd_nao_encontrado }},
+                {{ report.matriculas_nao_encontradas }},
+                {{ report.mensagens_invalidas }},
+                {{ report.respostas_link }}
+            ],
+            backgroundColor: [
+                '#0d6efd',
+                '#198754',
+                '#dc3545',
+                '#ffc107',
+                '#6c757d',
+                '#0dcaf0'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    }
+});
+
+// Atualizar dados a cada 30 segundos
+setInterval(function() {
+    $.get('/reports/data', function(data) {
+        // Atualizar gráfico com novos dados
+        chart.data.datasets[0].data = [
+            data.total_hd_encontrado || 0,
+            data.total_matriculas_encontradas || 0,
+            data.total_hd_nao_encontrado || 0,
+            data.total_matriculas_nao_encontrada || 0,
+            data.total_mensagens_invalidas || 0,
+            data.total_respostas_link || 0
+        ];
+        chart.update();
+    });
+}, 30000);
+
+function downloadPDF() {
+    showAlert('Gerando relatório PDF...', 'info');
+    
+    // Fazer download do PDF
+    window.location.href = '/reports/download-pdf';
+}
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $('.main-content').prepend(alertHtml);
+    
+    setTimeout(function() {
+        $('.alert').first().alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}

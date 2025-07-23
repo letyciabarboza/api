@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - VCGA{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-0">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </h2>
+        <p class="text-muted">Bem-vindo, {{ user_name }}!</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Status do WhatsApp -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fab fa-whatsapp fa-3x text-success mb-3"></i>
+                <h5 class="card-title">WhatsApp</h5>
+                <div id="whatsapp-status" class="status-badge status-offline">
+                    {{ whatsapp_status.get('status', 'Offline') }}
+                </div>
+                <div class="mt-3">
+                    <button id="btn-start-whatsapp" class="btn btn-success btn-custom me-2">
+                        <i class="fas fa-play"></i> Iniciar
+                    </button>
+                    <button id="btn-stop-whatsapp" class="btn btn-danger btn-custom">
+                        <i class="fas fa-stop"></i> Parar
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <button id="btn-clear-session" class="btn btn-warning btn-custom w-100">
+                        <i class="fas fa-trash-alt"></i> Limpar Sessão
+                    </button>
+                    <small class="text-muted d-block mt-1">Remove dados de sessão para conectar novo WhatsApp</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status do Bot -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-robot fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">Bot</h5>
+                <div id="bot-status" class="status-badge status-offline">
+                    {{ 'Online' if bot_status.get('running') else 'Offline' }}
+                </div>
+                <div class="mt-3">
+                    <button id="btn-start-bot" class="btn btn-success btn-custom me-2">
+                        <i class="fas fa-play"></i> Iniciar
+                    </button>
+                    <button id="btn-stop-bot" class="btn btn-danger btn-custom">
+                        <i class="fas fa-stop"></i> Parar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- QR Code -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-qrcode fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">QR Code</h5>
+                <div id="qr-container">
+                    <p class="text-muted">Nenhum QR Code disponível</p>
+                </div>
+                <button id="btn-refresh-qr" class="btn btn-warning btn-custom">
+                    <i class="fas fa-sync"></i> Atualizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Ações Rápidas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('base.bases_config') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-database me-2"></i>Gerenciar Bases
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('report.report') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-chart-bar me-2"></i>Ver Relatórios
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-success w-100" onclick="testMessage()">
+                            <i class="fas fa-paper-plane me-2"></i>Teste de Mensagem
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-secondary w-100" onclick="showSystemInfo()">
+                            <i class="fas fa-info me-2"></i>Info do Sistema
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informações do Sistema e Contato -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informações do Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <!-- Informações do Sistema -->
+                    <div class="col-md-6">
+                        <div class="bg-light p-4 rounded">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-robot me-2"></i>Sistema VCGA
+                            </h6>
+                            <p class="mb-2"><strong>Versão:</strong> 1.0</p>
+                            <p class="mb-2"><strong>Tipo:</strong> WhatsApp Bot Multi-usuário</p>
+                            <p class="mb-2"><strong>Status:</strong> <span class="badge bg-success">Ativo</span></p>
+                            <p class="mb-0"><strong>Última Atualização:</strong> Janeiro 2024</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Informações do Desenvolvedor -->
+                    <div class="col-md-6">
+                        <div class="bg-primary bg-opacity-10 p-4 rounded">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-user-tie me-2"></i>Desenvolvedor
+                            </h6>
+                            <p class="mb-2"><strong>Nome:</strong> Alisson Cardozo Varela</p>
+                            <p class="mb-2"><strong>E-mail:</strong> alissonprojetostaco@gmail.com</p>
+                            <p class="mb-2"><strong>GitHub:</strong> 
+                                <a href="https://github.com/Alisson-cardozo" target="_blank" class="text-decoration-none">
+                                    <i class="fab fa-github me-1"></i>Alisson-cardozo
+                                </a>
+                            </p>
+                            <p class="mb-0"><strong>Especialidade:</strong> Automação e Bots</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seção de Contato -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="bg-gradient text-white p-4 rounded" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <h6 class="text-white mb-3">
+                                <i class="fas fa-phone me-2"></i>Para orçamentos, entre em contato:
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fab fa-instagram fa-lg me-3"></i>
+                                        <div>
+                                            <strong>Instagram:</strong><br>
+                                            <a href="https://instagram.com/alissoncardozo" target="_blank" class="text-white text-decoration-none">
+                                                alissoncardozo
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fab fa-telegram fa-lg me-3"></i>
+                                        <div>
+                                            <strong>Telegram:</strong><br>
+                                            <a href="https://t.me/AUTOWINSUPREME" target="_blank" class="text-white text-decoration-none">
+                                                AUTOWINSUPREME
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fab fa-whatsapp fa-lg me-3"></i>
+                                        <div>
+                                            <strong>WhatsApp:</strong><br>
+                                            <a href="https://wa.me/5521990792058" target="_blank" class="text-white text-decoration-none">
+                                                Clique aqui
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Termos de Uso -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="alert alert-info mb-0">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-file-contract me-2"></i>Termos de Uso
+                            </h6>
+                            <p class="mb-2">
+                                <strong>Licença:</strong> Este sistema é propriedade de Alisson Cardozo Varela e está licenciado para uso comercial.
+                            </p>
+                            <p class="mb-2">
+                                <strong>Suporte:</strong> Suporte técnico disponível via WhatsApp ou Telegram.
+                            </p>
+                            <p class="mb-0">
+                                <strong>Atualizações:</strong> Atualizações e melhorias são fornecidas mediante contrato de manutenção.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Ação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h6>Limpar Sessão do WhatsApp</h6>
+                    <p class="text-muted">Esta ação irá:</p>
+                    <ul class="text-start">
+                        <li>Parar o servidor WhatsApp se estiver rodando</li>
+                        <li>Remover todos os dados de sessão</li>
+                        <li>Desconectar o WhatsApp atual</li>
+                        <li>Permitir conectar um novo número</li>
+                    </ul>
+                    <p class="text-danger"><strong>Você terá que escanear o QR Code novamente!</strong></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" onclick="confirmClearSession()">
+                    <i class="fas fa-trash-alt me-2"></i>Limpar Sessão
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Atualizar status a cada 5 segundos
+    setInterval(updateStatus, 5000);
+    updateStatus();
+    
+    // Event listeners
+    $('#btn-start-whatsapp').click(startWhatsApp);
+    $('#btn-stop-whatsapp').click(stopWhatsApp);
+    $('#btn-start-bot').click(startBot);
+    $('#btn-stop-bot').click(stopBot);
+    $('#btn-refresh-qr').click(refreshQR);
+    $('#btn-clear-session').click(showClearSessionModal);
+});
+
+function updateStatus() {
+    // Atualizar status do WhatsApp
+    $.get('/whatsapp/status', function(data) {
+        updateWhatsAppStatus(data);
+    });
+    
+    // Atualizar status do Bot
+    $.get('/bot/status', function(data) {
+        updateBotStatus(data);
+    });
+    
+    // Atualizar QR Code
+    refreshQR();
+}
+
+function updateWhatsAppStatus(data) {
+    const statusElement = $('#whatsapp-status');
+    const status = data.status || 'offline';
+    
+    statusElement.removeClass('status-online status-offline status-waiting');
+    
+    if (status === 'Conectado' || status.toLowerCase() === 'conectado') {
+        statusElement.addClass('status-online').text('Conectado');
+    } else if (status === 'Aguardando QR Code' || status.toLowerCase().includes('aguardando')) {
+        statusElement.addClass('status-waiting').text('Aguardando QR');
+    } else if (status === 'Iniciando' || status.toLowerCase() === 'iniciando') {
+        statusElement.addClass('status-waiting').text('Iniciando');
+    } else {
+        statusElement.addClass('status-offline').text('Offline');
+    }
+}
+
+function updateBotStatus(data) {
+    const statusElement = $('#bot-status');
+    const running = data.running || false;
+    
+    statusElement.removeClass('status-online status-offline');
+    
+    if (running) {
+        statusElement.addClass('status-online').text('Online');
+    } else {
+        statusElement.addClass('status-offline').text('Offline');
+    }
+}
+
+function startWhatsApp() {
+    $.post('/whatsapp/start-server', function(data) {
+        if (data.success) {
+            showAlert('WhatsApp iniciado com sucesso!', 'success');
+            setTimeout(updateStatus, 2000);
+        } else {
+            showAlert('Erro ao iniciar WhatsApp: ' + data.message, 'danger');
+        }
+    });
+}
+
+function stopWhatsApp() {
+    $.post('/whatsapp/stop-server', function(data) {
+        if (data.success) {
+            showAlert('WhatsApp parado com sucesso!', 'success');
+            updateStatus();
+        } else {
+            showAlert('Erro ao parar WhatsApp: ' + data.message, 'danger');
+        }
+    });
+}
+
+function startBot() {
+    $.post('/bot/start', function(data) {
+        if (data.success) {
+            showAlert('Bot iniciado com sucesso!', 'success');
+            setTimeout(updateStatus, 2000);
+        } else {
+            showAlert('Erro ao iniciar Bot: ' + data.message, 'danger');
+        }
+    });
+}
+
+function stopBot() {
+    $.post('/bot/stop', function(data) {
+        if (data.success) {
+            showAlert('Bot parado com sucesso!', 'success');
+            updateStatus();
+        } else {
+            showAlert('Erro ao parar Bot: ' + data.message, 'danger');
+        }
+    });
+}
+
+function refreshQR() {
+    $.get('/whatsapp/qr', function(data) {
+        const container = $('#qr-container');
+        
+        if (data.qr) {
+            container.html('<img src="' + data.qr + '" class="img-fluid" style="max-width: 200px;">');
+        } else {
+            container.html('<p class="text-muted">Nenhum QR Code disponível</p>');
+        }
+    });
+}
+
+function showClearSessionModal() {
+    $('#confirmModal').modal('show');
+}
+
+function confirmClearSession() {
+    $('#confirmModal').modal('hide');
+    
+    showAlert('Limpando sessão do WhatsApp...', 'info');
+    
+    $.post('/whatsapp/clear-session', function(data) {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            setTimeout(updateStatus, 2000);
+        } else {
+            showAlert('Erro: ' + data.message, 'danger');
+        }
+    }).fail(function() {
+        showAlert('Erro ao limpar sessão do WhatsApp', 'danger');
+    });
+}
+
+function testMessage() {
+    const number = prompt('Digite o número para teste (apenas números):', '21990792058');
+    if (number) {
+        if (!/^\d+$/.test(number)) {
+            showAlert('Por favor, digite apenas números sem espaços ou caracteres especiais', 'warning');
+            return;
+        }
+        
+        showAlert(`Enviando mensagem de teste para ${number}...`, 'info');
+        
+        $.ajax({
+            url: '/whatsapp/test-message',
+            type: 'POST',
+            data: JSON.stringify({ number: number }),
+            contentType: 'application/json',
+            success: function(data) {
+                if (data.success) {
+                    showAlert('Mensagem de teste enviada com sucesso!', 'success');
+                } else {
+                    showAlert('Erro ao enviar mensagem: ' + data.message, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Erro ao conectar com o servidor', 'danger');
+            }
+        });
+    }
+}
+
+function showSystemInfo() {
+    showAlert('Sistema VCGA v1.0 - Bot WhatsApp Administrativo', 'info');
+}
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $('.main-content').prepend(alertHtml);
+    
+    // Auto-remover após 5 segundos
+    setTimeout(function() {
+        $('.alert').first().alert('close');
+    }, 5000);
+}
+</script>
+{% endblock %}
