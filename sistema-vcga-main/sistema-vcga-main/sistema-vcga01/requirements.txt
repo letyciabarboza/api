@@ -7,3 +7,45 @@ Werkzeug==2.3.7
 schedule==1.2.0
 psutil==5.9.5
 reportlab==4.0.4
+
+# requirements.txt (arquivo na raiz do projeto)
+Flask==2.3.3
+gunicorn==21.2.0
+python-decouple==3.8
+Werkzeug==2.3.7
+
+# Procfile (arquivo na raiz do projeto)
+web: gunicorn app:app
+
+# runtime.txt (arquivo na raiz do projeto)  
+python-3.11.7
+
+# railway.json (arquivo na raiz do projeto)
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "nixpacks"
+  },
+  "deploy": {
+    "startCommand": "gunicorn app:app --host 0.0.0.0 --port $PORT",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
+
+# .railwayignore (arquivo na raiz do projeto)
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+node_modules
+npm-debug.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+__pycache__
+*.pyc
+venv/
+.venv/
