@@ -1,0 +1,21 @@
+cd sistema-vcga-main/sistema-vcga-main/sistema-vcga01
+
+# 2. Verificar se existe app.py ou main.py
+ls -la *.py
+
+# 3. Criar requirements.txt
+pip freeze > requirements.txt
+
+# 4. Criar Procfile (ajustar o nome do arquivo)
+echo "web: gunicorn app:app" > Procfile
+
+# 5. Criar runtime.txt
+echo "python-3.11.7" > runtime.txt
+
+# 6. Remover package.json se existir
+rm package.json 2>/dev/null || true
+
+# 7. Fazer novo commit
+git add .
+git commit -m "Fix Flask deploy configuration"
+git push
