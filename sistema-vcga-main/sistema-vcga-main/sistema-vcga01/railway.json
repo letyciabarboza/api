@@ -19,3 +19,6 @@ rm package.json 2>/dev/null || true
 git add .
 git commit -m "Fix Flask deploy configuration"
 git push
+"scripts": {
+  "build": "react-scripts build"
+}
